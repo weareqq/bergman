@@ -5,8 +5,9 @@ class Movie
                 :extra
                 
                 
-  def initialize(n, l)
+  def initialize(n, y, l)
     @name = n
+    @year = y
     @length = l
   end
   

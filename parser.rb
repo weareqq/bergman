@@ -12,14 +12,15 @@ class Parser
     #  log(movie) 
     #end
     
-    Movie.new(movie[:name], minutes)
+    Movie.new(movie[:name], movie[:year], minutes)
   end
   
   protected
   def self.extract_movie(line)
     line = line.split("\t")
     fs = line.delete_if{|f| f == ""}
-    {:name => fs[0], :length =>fs[1], :extra =>fs[2], :original => line}
+    year = fs[0][/\((\d\d\d\d)\)/, 1]
+    {:name => fs[0], :year => year, :length =>fs[1], :extra =>fs[2], :original => line}
   end
 
   def self.extract_length(movie)
@@ -38,12 +39,36 @@ class Parser
         # Russia:26 episode x 30
         guess =  $1.to_f * $2.to_f
 
+      when /\((\d+)\s*episodes\)/
+        # Russia:(26 episodes)
+        guess =  0.to_f
+        
+      when /(\d+)\s*(\d+)\s*episodes/
+        # UK:25 3 episodes
+        guess =  $1.to_f * $2.to_f
+        
+      when /\((\d+)\s*chapters\)/
+        # Russia:(26 chapters)
+        guess =  0.to_f
+
+      when /\((\d+)\s*seconds\)/
+        # (5 seconds)
+        guess =  "0.#{$1}".to_f
+
+      when /(\d+)\s*seconds/
+        # 23 seconds
+        guess =  "0.#{$1}".to_f
+
       when /(\d+)\.(\d+)/
         # South Africa:11.5
         guess =  initial_guess
 
       when /(\d+)\s*[x|X]\s*(\d+)/
         # Sweden:3x59
+        guess =  $1.to_f * $2.to_f
+
+      when /(\d+)\s*\*\s*(\d+)/
+        # Sweden:3*58
         guess =  $1.to_f * $2.to_f
 
       when /(\d+)\s*\+\s*(\d+)/
@@ -53,6 +78,21 @@ class Parser
       when /(\d+)hr/
         # USA:2hr
         guess =  $1.to_f * 60
+      when /(\d+)\s*hour/
+        # USA:1 hour
+        guess =  $1.to_f * 60
+
+      when /(\d+)\s*m/
+        # USA:120m
+        guess =  $1.to_f
+
+      when /(\d+)\s*mm/
+        # USA:90mn
+        guess =  $1.to_f
+
+      when /\+\/\-\s*(\d+)/
+        # Netherlands:+/- 20
+        guess =  $1.to_f
 
       when /(\d+)['|,](\d+)/
         # Germany:43'30
@@ -63,10 +103,17 @@ class Parser
         # USA:120 mins
         guess =  $1.to_f
 
+      when /(\d+)'/
+        # 87'
+        guess =  $1.to_f
+      when /(\d+)\+/
+        # 93+
+        guess =  $1.to_f
+
       end
       
       if guess
-        log = "."#"Strange: '#{initial_guess}' Guess: '#{guess}'  -- #{movie[:original]}" 
+        log = ""#"Strange: '#{initial_guess}' Guess: '#{guess}'  -- #{movie[:original]}" 
       else
         log = "****** Strange: '#{initial_guess}' *** NO GUESS  -- #{movie[:original]}" 
       end
